@@ -1,0 +1,194 @@
+---
+title: "Taller 1: Auditoría Exploratoria y Perfil del Curso"
+subtitle: "Estadística Descriptiva y Análisis Exploratorio de Datos (3006927)"
+author: "Miguel Anjel Salazar Jaramillo"
+lang: es
+date: today
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    code-fold: show
+    code-tools: true
+    df-print: paged
+    embed-resources: true
+knitr:
+  opts_chunk:
+    echo: true
+    warning: false
+    message: false
+    fig.align: "center"
+    fig.width: 7
+    fig.height: 4.5
+---
+
+<!-- 
+la porsicón de código entre las 3 líneas es el header del documento. En esta sección se pueden dar ciertas configuraciones al documento .qmd usando el formato YAML. Las opciones disponibles para el header se pueden consultar según el formato que se quiera construír. 
+html: https://quarto.org/docs/reference/formats/html.html
+pdf: https://quarto.org/docs/reference/formats/pdf.html
+MS Word: https://quarto.org/docs/reference/formats/docx.html
+ -->
+
+```{r}
+#| label: limpieza-inicial
+# Limpia el entorno inicial
+rm(list = ls())
+```
+
+
+<!-- 
+Para mostrar celdas de código, se debe usar los 3 apóstrofes seguidos de {r}. Este código se ejecuta durante la renderización del archivo. Para configurar las celdas de código, se usa la sintáxis #| clave: valor (YAML). Los ajustes de las celdas de códgio se pueden encontrar en: 
+https://quarto.org/docs/computations/execution-options.html
+-->
+
+## Introducción y configuración
+
+El propósito de este informe es caracterizar el perfil inicial de la cohorte a partir de las respuestas del *Quiz #0*, aplicando principios de datos ordenados (*tidy data*), análisis exploratorio riguroso y una auditoría crítica a los modelos de lenguaje (LLM).
+
+
+```{r}
+#| label: carga-paquetes
+# Carga de biblitecas o paquetes esenciales
+library(readxl)
+library(tidyverse)
+library(knitr)
+library(Hmisc)
+```
+
+
+### Carga y diagnóstico preliminar de datos
+
+```{r}
+#| label: load-data
+# Lectura de la base de datos
+datos_crudos <- read_excel("datos/resultados_quiz0.xlsx")
+```
+
+Nota metodológica: Identifique y documente en este apartado:
+
+* El registro que presenta un valor ausente (NA) en la variable WhatsApp.
+
+  En la observación 26 se identifica que para la variable **WhatsApp** no hay ningún dato. Se decide manejar este tipo de eventos, dandole el valor de **NA** (Not Available) para tener manejo de estas situaciones. 
+
+* La distribución de la variable huevo (¿aporta variabilidad para el análisis descriptivo o es una constante?).
+  En este caso, el atributo es una **constante** ya que para todas las observaciones/filas es el mismo valor, por lo cual **no** aporta variabilidad al anális.
+
+
+### Descripción general
+
+```{r}
+# Estructura general y dimensiones
+glimpse(datos_crudos)
+```
+
+### Descripción detallada
+
+```{r}
+describe(datos_crudos)
+```
+
+### Adecuación, reparación y limpieza: normalización de respuestas múltiples
+
+```{r}
+#| label: tidy-ia
+# Transformación a formato tidy (largo) y estandarización básica de cadenas (strings).
+datos_ia <- datos_crudos |>
+  select(id, PLAN, genero, PAPA, starts_with("IA-")) |>
+  pivot_longer(
+    cols = starts_with("IA-"),
+    names_to = "posicion_mencion",
+    values_to = "herramienta_ia",
+    values_drop_na = TRUE
+  ) |>
+  mutate(
+    herramienta_ia = str_trim(str_to_upper(herramienta_ia)),
+    # Estandarización de sinónimos o variantes tipográficas frecuentes
+    herramienta_ia = recode_values(
+      x = herramienta_ia,
+      "OPENIA" ~ "CHATGPT",
+      "KIMIAI" ~ "KIMI",
+      default = herramienta_ia
+    )
+  )
+```
+
+```{r}
+# Resumen de menciones por herramienta
+conteo_ia <- datos_ia |>
+  count(herramienta_ia, sort = TRUE)
+
+kable(conteo_ia, col.names = c("Herramienta de IA", "Número de menciones"))
+```
+
+## Análisis exploratorio de datos
+
+### Adopción del ecosistema de software
+
+```{r}
+#| label: software-adoption
+# Consolidación del perfil de instalación de software
+perfil_software <- datos_crudos |>
+  select(id, R, Positron, Quarto) |>
+  pivot_longer(cols = c(R, Positron, Quarto), names_to = "software", values_to = "instalado")
+```
+
+```{r}
+# Visualización comparativa
+ggplot(perfil_software, aes(x = software, fill = instalado)) +
+  geom_bar(position = "fill") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  scale_fill_brewer(palette = "Blues", direction = -1) +
+  labs(
+    title = "Nivel de adopción e instalación previa de software",
+    x = "Herramienta",
+    y = "Proporción de estudiantes",
+    fill = "¿Instalado?"
+  ) +
+  theme_minimal()
+```
+
+
+### Distribución del rendimiento académico (PAPA)
+
+```{r}
+#| label: eda-papa
+# Resumen numérico robusto del PAPA
+resumen_papa <- datos_crudos |>
+  summarise(
+    n = n(),
+    media = mean(PAPA, na.rm = TRUE),
+    desv_est = sd(PAPA, na.rm = TRUE),
+    mediana = median(PAPA, na.rm = TRUE),
+    RIC = IQR(PAPA, na.rm = TRUE),
+    minimo = min(PAPA, na.rm = TRUE),
+    maximo = max(PAPA, na.rm = TRUE)
+  )
+
+kable(resumen_papa, digits = 2, caption = "Estadísticos descriptivos del PAPA (N = 27)")
+```
+
+
+```{r}
+ggplot(datos_crudos, aes(PAPA)) +
+  geom_histogram(binwidth = 0.2) +
+  labs(title = "Promedio Académico Ponderado Acumulado (PAPA)")
+```
+
+### Distribución por género
+
+```{r}
+#| label: fig-boxplot-papa
+#| fig-cap: "Distribución del PAPA por género e identificación de dispersión."
+ggplot(datos_crudos, aes(x = genero, y = PAPA, fill = genero)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.15, size = 2, alpha = 0.8) +
+  labs(
+    title = "Distribución del PAPA según género",
+    x = "Género",
+    y = "PAPA acumulado"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
