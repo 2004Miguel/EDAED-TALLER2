@@ -1,6 +1,6 @@
 ---
-title: "Taller 1: Auditoría Exploratoria y Perfil del Curso"
-subtitle: "Estadística Descriptiva y Análisis Exploratorio de Datos (3006927)"
+title: "Taller 2: Auditoría Exploratoria y Perfil del Curso"
+subtitle: " Curso: Estadística Descriptiva y Análisis Exploratorio de Datos (3006927)"
 author: "Miguel Anjel Salazar Jaramillo"
 lang: es
 date: today
@@ -50,7 +50,7 @@ El propósito de este informe es caracterizar el perfil inicial de la cohorte a 
 
 ```{r}
 #| label: carga-paquetes
-# Carga de biblitecas o paquetes esenciales
+# Carga de biblitecas y paquetes esenciales
 library(readxl)
 library(tidyverse)
 library(knitr)
@@ -60,26 +60,47 @@ library(Hmisc)
 
 ### Carga y diagnóstico preliminar de datos
 
+Luego de instalar las librerias necesarias para la manipulación de datos usando R, se continua con la carga de los datos. En este caso, se **espera** leer un archivo con el formato .xlsx y el nombre **resultados_quiz0**. Una vez leído el archivo, la información será almacenada en el objeto datos_crudos para tratarla como un objeto de R. 
+
 ```{r}
 #| label: load-data
 # Lectura de la base de datos
 datos_crudos <- read_excel("datos/resultados_quiz0.xlsx")
 ```
 
-Nota metodológica: Identifique y documente en este apartado:
+Luego de cargar la información, se pueden apreciar 2 casos u observacaciones en las que hay que tomar una decisión de como manejarlos ya que si se dejan sin tratamiento, el comportamiento de la información podría variar según que herramienta se esté usando para llevar a cabo el análisis. 
 
 * El registro que presenta un valor ausente (NA) en la variable WhatsApp.
 
-  En la observación 26 se identifica que para la variable **WhatsApp** no hay ningún dato. Se decide manejar este tipo de eventos, dandole el valor de **NA** (Not Available) para tener manejo de estas situaciones. 
+  En la observación 26 se identifica que para la variable **WhatsApp** no hay ningún dato. Se decide manejar este tipo de eventos, dandole el valor de **NA** (Not Available) para tener manejo de estas situaciones y tener certeza de que está pasando con este caso. Para eso, se ejecuta el siguiente código el cual solo aplica para columnas de tipo **string**. No es necesario hacerlo para columnas numéricas ya que en este dataset solo hay una columna de ese tipo y todos los datos están correctamente ingresados
+
+```{r}                                                                           
+#| label: manejo de datos vacios
+# solo se aplica a las columnas de tipo texto. trimws elimina los espacios al inicio y final de un dato
+datos_crudos[] <- lapply(datos_crudos, function(col) {
+  if (is.character(col)) {
+    col[trimws(col) == ""] <- NA_character_
+  }
+  col
+})
+```
 
 * La distribución de la variable huevo (¿aporta variabilidad para el análisis descriptivo o es una constante?).
-  En este caso, el atributo es una **constante** ya que para todas las observaciones/filas es el mismo valor, por lo cual **no** aporta variabilidad al anális.
+  En este caso, el atributo es una **constante** ya que para todas las observaciones/filas es el mismo valor, por lo cual **no** aporta variabilidad al anális. Para no tener *ruido* se decide eliminarla. Además, la variable "R" también es una constante
+
+```{r}
+#| label: eliminación de las columanas innecesarias
+datos_crudos$huevo <- NULL
+datos_crudos$R <- NULL
+```
 
 
 ### Descripción general
 
+Teniendo los datos cargados y listos para manipularlos con R, se pueden usar diferentes herramientas para explorarlos:  
+
 ```{r}
-# Estructura general y dimensiones
+# Estructura general y dimensiones. Se muestran la cantidad de filas, columnas y tipo. Además, algunos datos.
 glimpse(datos_crudos)
 ```
 
@@ -130,8 +151,8 @@ kable(conteo_ia, col.names = c("Herramienta de IA", "Número de menciones"))
 #| label: software-adoption
 # Consolidación del perfil de instalación de software
 perfil_software <- datos_crudos |>
-  select(id, R, Positron, Quarto) |>
-  pivot_longer(cols = c(R, Positron, Quarto), names_to = "software", values_to = "instalado")
+  select(id, Positron, Quarto) |>
+  pivot_longer(cols = c(Positron, Quarto), names_to = "software", values_to = "instalado")
 ```
 
 ```{r}
