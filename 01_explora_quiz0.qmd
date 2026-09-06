@@ -130,6 +130,7 @@ datos_ia <- datos_crudos |>
       x = herramienta_ia,
       "OPENIA" ~ "CHATGPT",
       "KIMIAI" ~ "KIMI",
+      "CODE" ~ "CLAUDE",
       default = herramienta_ia
     )
   )
@@ -145,27 +146,31 @@ kable(conteo_ia, col.names = c("Herramienta de IA", "Número de menciones"))
 
 ## Análisis exploratorio de datos
 
+En esta sección, se pretende indagar un poco más a fondo en los datos con el proposito de descubrir que patrónes o respuestas se podrían encontrar en el dataset. 
+
 ### Adopción del ecosistema de software
 
-```{r}
-#| label: software-adoption
-# Consolidación del perfil de instalación de software
-perfil_software <- datos_crudos |>
-  select(id, Positron, Quarto) |>
-  pivot_longer(cols = c(Positron, Quarto), names_to = "software", values_to = "instalado")
-```
+Aunque en las gráficas solo se observen los programas Positron y Quarto, recordar que también se tiene en cuenta R. Como todos los estudiantes ya lo tienen instalado, no hay necesidad de implicarlo en el estudio, se da por hecho. 
 
 ```{r}
-# Visualización comparativa
-ggplot(perfil_software, aes(x = software, fill = instalado)) +
-  geom_bar(position = "fill") +
-  scale_y_continuous(labels = scales::percent_format()) +
-  scale_fill_brewer(palette = "Blues", direction = -1) +
+# dato largo es para "combinar" 2 columnas en una. Positron y Quarto son 2 columnas diferentes (formato ancho) y enformato largo queda una sola columna programa(Positron/Quarto) y otra instalo (S/N). Necesario para poder graficar con ggplot2 
+datos_largo <- datos_crudos %>%
+  select(Positron, Quarto) %>%
+  pivot_longer(cols = everything(), names_to = "programa", values_to = "instalo") %>%
+  count(programa, instalo)
+
+# 3. Graficar
+ggplot(datos_largo, aes(x = programa, y = n, fill = instalo)) +
+  geom_col(position = "dodge") +
+  scale_fill_manual(
+    values = c("S" = "#22c55e", "N" = "#ef4444"),
+    labels = c("S" = "Instaló (S)", "N" = "No instaló (N)"),
+    name = NULL
+  ) +
   labs(
-    title = "Nivel de adopción e instalación previa de software",
-    x = "Herramienta",
-    y = "Proporción de estudiantes",
-    fill = "¿Instalado?"
+    title = "Instalación de Positron y Quarto",
+    x = NULL,
+    y = "Número de personas"
   ) +
   theme_minimal()
 ```
@@ -212,4 +217,73 @@ ggplot(datos_crudos, aes(x = genero, y = PAPA, fill = genero)) +
   ) +
   theme_minimal() +
   theme(legend.position = "none")
+```
+
+```{r}
+#| label: dmedia-papa-genero
+# Resumen numérico por género: media, desviación estándar y error estándar
+resumen_genero <- datos_crudos |>
+  group_by(genero) |>
+  summarise(
+    n = n(),
+    media = mean(PAPA, na.rm = TRUE),
+    desv_est = sd(PAPA, na.rm = TRUE),
+    error_est = desv_est / sqrt(n)
+  )
+
+kable(resumen_genero, digits = 2, caption = "Media y error estándar del PAPA por género")
+```
+
+
+```{r}
+#| label: fig-medias-papa
+#| fig-cap: "Diagrama de medias del PAPA por género, con barras de error (± 1 error estándar)."
+ggplot(resumen_genero, aes(x = genero, y = media, color = genero)) +
+  geom_point(size = 4) +
+  geom_errorbar(
+    aes(ymin = media - error_est, ymax = media + error_est),
+    width = 0.1,
+    linewidth = 0.8
+  ) +
+  labs(
+    title = "Media del PAPA según género",
+    subtitle = "Barras de error = ± 1 error estándar",
+    x = "Género",
+    y = "PAPA promedio"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Teniendo en cuenta los boxplots y los diagrámas de medias, en la muestra se observa que en promedio el PAPA de los hombres es **mayor** al de las mujeres. Esto solo se puede afirmar para este caso de manera descriptiva más no poblacional ya que la muestra es muy pequeña. Mencionar que este hallazgo se hizo tan solo graficando y observando los datos. 
+
+
+### Variedad de planes
+
+```{r}
+#| label: fig-barras-plan
+#| fig-cap: "Frecuencia de estudiantes por plan de estudios."
+datos_crudos |>
+  count(PLAN) |>
+  ggplot(aes(x = PLAN, y = n)) +
+  geom_col(fill = "#3b82f6") +
+  labs(
+    title = "Frecuencia por Plan de Estudios",
+    x = NULL,
+    y = "Número de personas"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```
+
+### Acertividad en la escritura del usuario institucional
+
+```{r}
+#| label: tabla-usuario
+tabla_usuario <- datos_crudos |>
+  count(usuario) |>
+  mutate(porcentaje = round(n / sum(n) * 100, 1))
+
+kable(tabla_usuario, col.names = c("Usuario", "Frecuencia", "Porcentaje (%)"),
+      caption = "Tabla de frecuencia de la variable usuario")
 ```
