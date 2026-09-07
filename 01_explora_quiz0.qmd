@@ -287,3 +287,23 @@ tabla_usuario <- datos_crudos |>
 kable(tabla_usuario, col.names = c("Usuario", "Frecuencia", "Porcentaje (%)"),
       caption = "Tabla de frecuencia de la variable usuario")
 ```
+
+
+## Preguntas específicas
+
+Habiendo llegado a este punto, se tiene un entendimiento profundo del dataset y es posible llegar a tener cierta noción de que tipo de preguntas se podrían llegar a resolver y cuales no. Sin olvidar que estas respuestas no dejan de ser un mero *supuesto* por el número de la muestra y las técnicas utilizadas. 
+
+### Mientras más alto el grupo de inscripción, el PAPA es más bajo ?
+
+```{r}
+datos_crudos$grupo <- factor(datos_crudos$grupo)
+
+ggplot(datos_crudos, aes(x = grupo, y = PAPA, color = grupo)) +
+  geom_boxplot(alpha = 0.3, outlier.shape = NA) +
+  geom_jitter(width = 0.15, size = 3, alpha = 0.8) +
+  labs(title = "Distribución de PAPA por grupo",
+       x = "Grupo",
+       y = "PAPA") +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "none") 
+```
