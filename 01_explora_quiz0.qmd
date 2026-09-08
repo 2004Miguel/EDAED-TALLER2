@@ -295,6 +295,31 @@ Habiendo llegado a este punto, se tiene un entendimiento profundo del dataset y 
 
 ### Mientras más alto el grupo de inscripción, el PAPA es más bajo ?
 
+Esta pregunta es valida ya que uno de los parámetros para categorizar a un estudiante en un grupo de inscripción es el porcentaje de avance entre muchas otras condiciones. Dar respuesta a esta pregunta **podría** revelar información importante a cerca del proceso formativo de los estudiantes.   
+
+
+```{r}
+# media, desviación estándar, error estándar, n, e IC 95%
+resumen <- datos_crudos %>%
+  group_by(grupo) %>%
+  summarise(
+    media = mean(PAPA, na.rm = TRUE),
+    sd    = sd(PAPA, na.rm = TRUE),
+    n     = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    se        = sd / sqrt(n),
+    ic_95     = qt(0.975, df = n - 1) * se,
+    ic_inf    = media - ic_95,
+    ic_sup    = media + ic_95
+  )
+ 
+kable(resumen, digits = 2, caption = "Media, desviación estandar, error estándar, número de obsrevaciones e Intervalo de confianza")
+
+```
+
+
 ```{r}
 datos_crudos$grupo <- factor(datos_crudos$grupo)
 
@@ -307,3 +332,31 @@ ggplot(datos_crudos, aes(x = grupo, y = PAPA, color = grupo)) +
   theme_minimal(base_size = 13) +
   theme(legend.position = "none") 
 ```
+
+De este diagrama se puede observar que todas las cajas se traslapan, de entrada esto significa que en promedio no se puede determinar como se comporta el PAPA en los diferentes grupos. El siguiente aspecto que hay que tener en cuenta es que no hay suficientes muestras para poder determinar algo, por ejemplo, las personas que están en el grupo *3* son solo **2** mientras que para el grupo 2 se ve claramente una población más grande. 
+
+```{r}
+#| label: fig-medias-papa-grupo
+#| fig-cap: "Diagrama de medias del PAPA por grupo, con barras de error (± 1 error estándar)."
+ggplot(resumen, aes(x = grupo, y = media, color = grupo)) +
+  geom_point(size = 4) +
+  geom_errorbar(
+    aes(ymin = media - se, ymax = media + se),
+    width = 0.1,
+    linewidth = 0.8
+  ) +
+  labs(
+    title = "Media del PAPA según grupo",
+    subtitle = "Barras de error = ± 1 error estándar",
+    x = "Grupo",
+    y = "PAPA promedio"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+#### Respuesta
+
+Dado el diagrama de medias como **justificación** del boxplot, se determina que no es posible saber como se comporta en **promedio** en los diferentes grupos. Esto, por razones que ya se habían comentado en el boxplot.
+
+### Las personas que leyeron el correo y se unieron al WhatsApp, instalaron Positron ? 
