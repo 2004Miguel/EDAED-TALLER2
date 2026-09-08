@@ -359,4 +359,87 @@ ggplot(resumen, aes(x = grupo, y = media, color = grupo)) +
 
 Dado el diagrama de medias como **justificación** del boxplot, se determina que no es posible saber como se comporta en **promedio** en los diferentes grupos. Esto, por razones que ya se habían comentado en el boxplot.
 
-### Las personas que leyeron el correo y se unieron al WhatsApp, instalaron Positron ? 
+### Todas las personas que leyeron el correo y se unieron al WhatsApp, instalaron o ya tenían Positron ? 
+
+Dado que en los mensajes del correo electrónico estaban todas las instrucciones para unirse al WhatsApp e instalar las herramientas necesarias, esta pregunta nos podría dar información a cerca de la docilidad de la población y ver que porcentaje estaba preparado desde el día 1. 
+
+
+```{r}
+#| label: filtro-correo-whatsapp
+# Filtrar solo quienes leyeron el correo Y se unieron al WhatsApp
+subgrupo_correo_whatsapp <- datos_crudos |>
+  filter(leyo_correo == "S", WhatsApp == "S")
+```
+
+```{r}
+#| label: tablaFrecuencia-positron-filtrado
+tabla_positron <- subgrupo_correo_whatsapp |>
+  count(Positron) |>
+  mutate(porcentaje = round(n / sum(n) * 100, 1))
+
+tabla_positron <- tabla_positron |>
+  bind_rows(
+    tibble(
+      Positron   = "Total",
+      n          = sum(tabla_positron$n),
+      porcentaje = 100
+    )
+  )
+
+kable(tabla_positron, col.names = c("Instaló Positron", "Frecuencia", "Porcentaje (%)"),
+      caption = "Instalación de Positron entre quienes leyeron el correo y se unieron al WhatsApp")
+```
+
+```{r}
+#| label: fig-barras-positron-filtrado
+#| fig-cap: "Instalación de Positron entre estudiantes que leyeron el correo y se unieron al WhatsApp."
+ggplot(subgrupo_correo_whatsapp, aes(x = Positron, fill = Positron)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = c("S" = "#22c55e", "N" = "#ef4444"),
+    labels = c("S" = "Instaló (S)", "N" = "No instaló (N)")
+  ) +
+  labs(
+    title = "Instalación de Positron",
+    subtitle = "Entre quienes leyeron el correo y se unieron al WhatsApp",
+    x = NULL,
+    y = "Número de personas"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+Dado que la muestra **total** es de 27 participantes y 23 personas (La mayoría) leyó el correo y se unió al WhatsApp, se esperaría que de esos 23 la mayoría también hubieran instalado Positron. El gráifco de barras y la tabla de frecuencia muestran lo contrario, solo 8 personas (34.8%) instalaron o ya tenian Positron. 
+
+#### Respuesta
+
+No todas las personas que leyeron el correo y se unieron al WhatsApp instalaron o tenían instalado Positron. Esto pudo ocurrir por multiples factores y razones que se salen de los límites de este análisis. 
+
+## Uso de IA 
+
+1. ¿ Se usó IA ?  
+Sí
+
+2. ¿ En que se usó ?    
+Se uso para explicación del código R, interpretación de algunos diagramas, generar ideas para responder las preguntas planteadas y para la generación de gráficas. 
+
+3. ¿ Que cambié ?  
+Al generar gráficas, habían labels con nombres poco descriptivos y los cambié por algo más acertado. Al crear gráficas, se creaban objetos con demaciadas cosas y yo lo simplificaba por algo más sencillo. 
+
+    1. ¿ Que aprendí ?  
+  Me empapé un poco más de lo que es el Tidyverse, logré familiarizarme un poco más con la sintáxis del paquete ggplot para generar diagramas y entender el flujo de trabajo que hay con los Quarto. 
+
+4. Prompts claves  
+
+    1. que se puede concluír de este diagrama de medias que se usó como justificación para el boxplot anterior ?
+  Acá se hace referencia al boxplot de la primera pregunta planteada.   
+
+    2. puedo generar un diagrama de disperción para una variable numérica y otra categórica ?
+  Quería graficar la relación entre el grupo y el PAPA pero me dí cuenta que daría la forma del boxplot
+
+## Información del entorno de desarrollo
+```{r}
+#| label: info - entorno de trabajo
+info <- sessionInfo()
+print(info)
+```
