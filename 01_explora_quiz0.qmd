@@ -47,6 +47,21 @@ https://quarto.org/docs/computations/execution-options.html
 
 El propósito de este informe es caracterizar el perfil inicial de la cohorte a partir de las respuestas del *Quiz #0*, aplicando principios de datos ordenados (*tidy data*), análisis exploratorio riguroso y una auditoría crítica a los modelos de lenguaje (LLM).
 
+```{r}
+#| label: configuracion-entorno
+# 1. Verificación, instalación y carga de paquetes. 
+paquetes_requeridos <- c("readxl", "tidyverse", "knitr", "Hmisc")
+
+# installed.packages() devuelve una matriz con todos los paquetes instalados en la máquina
+# installed.packages()[, "Package"] selecciona solo la columna con el nombre de los paquetes
+# paquetes_requeridos %in% installed.packages()[,"Package"] compara cada paquete requerido con los que están instalados. Devuelve TRUE/FALSE según el caso. 
+paquetes_faltantes <- paquetes_requeridos[!(paquetes_requeridos %in% installed.packages()[,"Package"])]
+
+if(length(paquetes_faltantes) > 0) {
+  install.packages(paquetes_faltantes)
+}
+```
+
 
 ```{r}
 #| label: carga-paquetes
@@ -76,7 +91,7 @@ Luego de cargar la información, se pueden apreciar 2 casos u observacaciones en
 
 ```{r}                                                                           
 #| label: manejo de datos vacios
-# solo se aplica a las columnas de tipo texto. trimws elimina los espacios al inicio y final de un dato
+# solo se aplica a las columnas de tipo texto. La función trimws elimina los espacios al inicio y final de un dato. La función lapply, se encarga de aplicar una función a cada elemento de una lista y devuelve los resultados en una lista
 datos_crudos[] <- lapply(datos_crudos, function(col) {
   if (is.character(col)) {
     col[trimws(col) == ""] <- NA_character_
@@ -100,6 +115,7 @@ datos_crudos$R <- NULL
 Teniendo los datos cargados y listos para manipularlos con R, se pueden usar diferentes herramientas para explorarlos:  
 
 ```{r}
+#| label: primer vistazo
 # Estructura general y dimensiones. Se muestran la cantidad de filas, columnas y tipo. Además, algunos datos.
 glimpse(datos_crudos)
 ```
@@ -107,14 +123,23 @@ glimpse(datos_crudos)
 ### Descripción detallada
 
 ```{r}
-describe(datos_crudos)
+#| label: info detallada
+describe(datos_crudos %>% select(-id))
 ```
 
 ### Adecuación, reparación y limpieza: normalización de respuestas múltiples
 
 ```{r}
 #| label: tidy-ia
-# Transformación a formato tidy (largo) y estandarización básica de cadenas (strings).
+# Transformación a formato ancho(no se repiten valores en las filas) a largo (se repiten valores en las filas) y estandarización básica de cadenas (strings).
+
+# El operador pipe |> toma lo que está a la izquierda y lo pasa como primer argumento de la función de la derecha. 
+# la función pivot_longer convierte datos anchos en largos, en este caso, las columnas de IA-1 a IA-5 se convertiran en 2 columnas. 
+# el parámetro cols indica que columnas va a transformar
+# names_to indica que nombre tendrá la columna que va a guardar de "donde venían los datos". 
+# values_to indica el nombre de la columna que guardará los datos en si
+
+browser()
 datos_ia <- datos_crudos |>
   select(id, PLAN, genero, PAPA, starts_with("IA-")) |>
   pivot_longer(
@@ -134,6 +159,8 @@ datos_ia <- datos_crudos |>
       default = herramienta_ia
     )
   )
+
+# 
 ```
 
 ```{r}
