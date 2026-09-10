@@ -129,6 +129,8 @@ describe(datos_crudos %>% select(-id))
 
 ### Adecuación, reparación y limpieza: normalización de respuestas múltiples
 
+En esta sección, se unifican las columnas de IA's en una sola y además, se mantienen sus respectivas respuestas para cada variable. Esto se hace para tener un control más limpio de la información al tratar solo con 2 columnas que en lugar de 5 que hacen referencia a lo mismo. Además, se crean sinónimos para tener una cuenta más precisa de las herramientas que se crean, es decir, chatGPT y OpenAI actualmente cuentan como 2 herramientas distintas, pero después del tratamiento, cuentan como una sola. 
+
 ```{r}
 #| label: tidy-ia
 # Transformación a formato ancho(no se repiten valores en las filas) a largo (se repiten valores en las filas) y estandarización básica de cadenas (strings).
@@ -139,7 +141,6 @@ describe(datos_crudos %>% select(-id))
 # names_to indica que nombre tendrá la columna que va a guardar de "donde venían los datos". 
 # values_to indica el nombre de la columna que guardará los datos en si
 
-browser()
 datos_ia <- datos_crudos |>
   select(id, PLAN, genero, PAPA, starts_with("IA-")) |>
   pivot_longer(
