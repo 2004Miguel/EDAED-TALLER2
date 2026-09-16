@@ -471,3 +471,239 @@ Al generar gráficas, habían labels con nombres poco descriptivos y los cambié
 info <- sessionInfo()
 print(info)
 ```
+
+## Anexo de documentación detallada del archivo `.qmd`
+
+Esta sección amplía la documentación para explicar con mayor profundidad **qué hace** el documento, **cómo lo hace** y **qué significa la sintaxis de R** usada en cada etapa.
+
+### 1) ¿Qué hace este documento en términos generales?
+
+Este archivo Quarto:
+
+1. Configura un entorno reproducible de análisis.
+2. Carga una base de datos en formato Excel.
+3. Limpia y normaliza los datos para evitar inconsistencias.
+4. Reestructura variables para análisis descriptivo.
+5. Genera resúmenes estadísticos y visualizaciones exploratorias.
+6. Responde preguntas puntuales con evidencia tabular y gráfica.
+7. Reporta información del entorno de ejecución para trazabilidad.
+
+En conjunto, el flujo implementa un proceso de **EDA (Exploratory Data Analysis)** con enfoque descriptivo.
+
+### 2) ¿Cómo está estructurado un archivo Quarto con R?
+
+Un `.qmd` integra tres capas:
+
+- **Encabezado YAML** (`---` ... `---`): metadatos y opciones globales.
+- **Texto narrativo en Markdown**: contexto, interpretación y conclusiones.
+- **Bloques de código R** (chunks): instrucciones ejecutables que producen objetos, tablas y figuras.
+
+Cuando se renderiza el documento, Quarto ejecuta los chunks en orden y combina resultados + narrativa en el reporte final (HTML en este caso).
+
+### 3) Significado de la sintaxis principal de R usada en el documento
+
+#### 3.1 Asignación y objetos
+
+- `objeto <- valor`: asigna un valor a un objeto.
+- Los objetos pueden ser vectores, tablas, listas, funciones, etc.
+
+#### 3.2 Vectores y selección
+
+- `c(a, b, c)`: crea un vector concatenando elementos.
+- `vector[condicion]`: filtra elementos por condición lógica.
+- `df[, "columna"]`: selecciona una columna por nombre.
+- `select(...)`: selección declarativa de columnas en `dplyr`.
+
+#### 3.3 Operadores lógicos y relacionales
+
+- `%in%`: verifica pertenencia de cada elemento en un conjunto.
+- `==`, `>`, `<`: comparaciones.
+- `!`: negación lógica.
+- `&`: “y” lógico (ambas condiciones verdaderas).
+
+#### 3.4 Control de flujo
+
+- `if (condicion) { ... }`: ejecuta un bloque si la condición es verdadera.
+- `length(x)`: número de elementos de `x`.
+
+#### 3.5 Funciones y programación funcional
+
+- `funcion(arg1, arg2)`: llamada a función.
+- `lapply(lista, funcion)`: aplica una función a cada elemento de una lista/colección.
+- `function(col) { ... }`: definición de función anónima.
+
+#### 3.6 Tuberías (pipes)
+
+El archivo usa dos estilos:
+
+- `%>%` (magrittr/tidyverse)
+- `|>` (pipe nativo de R)
+
+Ambos pasan el resultado de la izquierda como primer argumento de la función de la derecha, favoreciendo lectura secuencial del flujo.
+
+#### 3.7 Valores faltantes y tipos
+
+- `NA`: dato ausente.
+- `NA_character_`: NA tipado como carácter.
+- `is.character(x)`: valida si un objeto es texto.
+
+#### 3.8 Manipulación de datos (tidyverse)
+
+- `mutate()`: crea/modifica columnas.
+- `filter()`: filtra filas.
+- `count()`: tabla de frecuencias.
+- `group_by()`: define grupos para agregación.
+- `summarise()`: calcula estadísticas por grupo o globales.
+- `pivot_longer()`: pasa de formato ancho a largo.
+
+#### 3.9 Visualización (ggplot2)
+
+- `ggplot(data, aes(...))`: define datos + mapeo estético.
+- `geom_col()`, `geom_bar()`, `geom_histogram()`, `geom_boxplot()`, `geom_point()`, `geom_errorbar()`, `geom_jitter()`: capas geométricas.
+- `labs()`: títulos y etiquetas.
+- `theme_minimal()`: tema visual base.
+
+### 4) Documentación detallada por bloques funcionales del archivo
+
+#### 4.1 Bloque `limpieza-inicial`
+
+- **Qué hace**: limpia el entorno con `rm(list = ls())`.
+- **Cómo lo hace**:
+  - `ls()` lista objetos existentes.
+  - `rm(list = ...)` elimina esos objetos.
+- **Por qué importa**: evita que objetos de sesiones previas contaminen resultados.
+
+#### 4.2 Bloque `configuracion-entorno`
+
+- **Qué hace**: verifica paquetes requeridos e instala faltantes.
+- **Cómo lo hace**:
+  1. Define `paquetes_requeridos`.
+  2. Compara contra `installed.packages()[, "Package"]`.
+  3. Guarda faltantes en `paquetes_faltantes`.
+  4. Ejecuta `install.packages()` solo si hay faltantes (`if(length(...) > 0)`).
+- **Valor técnico**: mejora portabilidad/reproducibilidad en máquinas nuevas.
+
+#### 4.3 Bloque `carga-paquetes`
+
+- **Qué hace**: carga bibliotecas con `library(...)`.
+- **Cómo lo hace**: registra funciones de cada paquete en la sesión activa.
+- **Resultado**: habilita lectura Excel, manipulación tidy, tablas y estadística descriptiva.
+
+#### 4.4 Bloque `load-data`
+
+- **Qué hace**: importa `datos/resultados_quiz0.xlsx` a `datos_crudos`.
+- **Cómo lo hace**: `read_excel()` parsea la hoja y devuelve un data frame tipo tibble.
+
+#### 4.5 Bloque `manejo de datos vacios`
+
+- **Qué hace**: reemplaza cadenas vacías por `NA` en columnas de texto.
+- **Cómo lo hace**:
+  - Recorre columnas con `lapply`.
+  - Evalúa `is.character(col)`.
+  - Limpia espacios con `trimws(col)`.
+  - Donde queda `""`, asigna `NA_character_`.
+- **Motivo**: estandariza ausencias para análisis consistente.
+
+#### 4.6 Bloque `eliminación de las columanas innecesarias`
+
+- **Qué hace**: elimina columnas constantes (`huevo`, `R`).
+- **Cómo lo hace**: asigna `NULL` a cada columna (`datos_crudos$huevo <- NULL`).
+- **Motivo**: variables sin variación no aportan señal descriptiva.
+
+#### 4.7 Bloques descriptivos iniciales (`primer vistazo`, `info detallada`)
+
+- `glimpse(datos_crudos)`:
+  - **Qué hace**: muestra estructura compacta (tipos, dimensiones, muestra de valores).
+- `describe(datos_crudos %>% select(-id))`:
+  - **Qué hace**: calcula estadísticos descriptivos múltiples por variable.
+  - **Cómo lo hace**: excluye `id` para concentrar resumen en variables analíticas.
+
+#### 4.8 Bloque `tidy-ia`
+
+- **Qué hace**: normaliza respuestas de herramientas IA.
+- **Cómo lo hace**:
+  1. `select(...)` conserva columnas relevantes.
+  2. `pivot_longer(starts_with("IA-"), ...)` convierte IA-1...IA-5 a formato largo.
+  3. `values_drop_na = TRUE` elimina menciones vacías.
+  4. `str_trim()` y `str_to_upper()` limpian y homogeneizan texto.
+  5. `recode_values(...)` unifica sinónimos/errores comunes.
+- **Resultado**: una columna estandarizada para conteo y comparación fiable.
+
+#### 4.9 Resumen de menciones de IA
+
+- **Qué hace**: genera frecuencia por herramienta.
+- **Cómo lo hace**:
+  - `count(herramienta_ia, sort = TRUE)` ordena de mayor a menor.
+  - `kable(...)` presenta tabla legible en el reporte.
+
+#### 4.10 Adopción de software (Positron/Quarto)
+
+- **Qué hace**: compara instalación entre dos programas.
+- **Cómo lo hace**:
+  1. Reestructura con `pivot_longer`.
+  2. Cuenta combinaciones `programa` + `instalo`.
+  3. Grafica barras agrupadas con `geom_col(position = "dodge")`.
+
+#### 4.11 PAPA global y por género
+
+- **Global (`eda-papa`)**:
+  - `summarise(...)` calcula tamaño muestral, tendencia central y dispersión.
+- **Histograma**:
+  - `geom_histogram(binwidth = 0.2)` aproxima forma de distribución.
+- **Por género**:
+  - Boxplot + jitter: distribución + observaciones individuales.
+  - Tabla resumen por `group_by(genero)`.
+  - Diagrama de medias con error estándar (`desv_est / sqrt(n)`).
+
+#### 4.12 Variedad de planes
+
+- **Qué hace**: cuenta estudiantes por `PLAN`.
+- **Cómo lo hace**: `count(PLAN)` seguido de `geom_col()`.
+- **Interpretación esperada**: composición de la cohorte por plan.
+
+#### 4.13 Acertividad del usuario institucional
+
+- **Qué hace**: frecuencia y porcentaje de `usuario`.
+- **Cómo lo hace**:
+  - `count(usuario)`.
+  - `mutate(porcentaje = round(n / sum(n) * 100, 1))`.
+  - Presentación con `kable()`.
+
+#### 4.14 Pregunta sobre grupo vs PAPA
+
+- **Qué hace**: explora relación descriptiva entre grupo de inscripción y rendimiento.
+- **Cómo lo hace**:
+  1. Resume media, SD y `n` por grupo.
+  2. Calcula error estándar y margen de IC95% con `qt(...)`.
+  3. Visualiza dispersión (boxplot + jitter) y medias con barras de error.
+- **Sintaxis clave**:
+  - `factor(...)`: trata `grupo` como categórica.
+  - `.groups = "drop"`: evita agrupación residual tras `summarise`.
+
+#### 4.15 Pregunta correo + WhatsApp vs Positron
+
+- **Qué hace**: filtra subgrupo comprometido y evalúa instalación de Positron.
+- **Cómo lo hace**:
+  1. `filter(leyo_correo == "S", WhatsApp == "S")`.
+  2. Frecuencias y porcentajes de `Positron`.
+  3. Agrega fila de total con `bind_rows(tibble(...))`.
+  4. Tabla + gráfico de barras.
+
+#### 4.16 Bloque de entorno (`sessionInfo`)
+
+- **Qué hace**: documenta versión de R, plataforma y paquetes cargados.
+- **Cómo lo hace**: captura `sessionInfo()` y lo imprime.
+- **Por qué es útil**: permite reproducibilidad y auditoría técnica.
+
+### 5) Flujo lógico de extremo a extremo
+
+El pipeline global implementado es:
+
+1. **Preparar entorno** (limpieza, paquetes).
+2. **Importar datos**.
+3. **Corregir calidad de datos** (vacíos, constantes, normalización).
+4. **Explorar descriptivamente** (tablas + gráficos).
+5. **Responder preguntas puntuales** con evidencia.
+6. **Registrar entorno** para reproducibilidad.
+
+Este orden reduce errores, mejora consistencia de resultados y deja trazabilidad del proceso analítico.
